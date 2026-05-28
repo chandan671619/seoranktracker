@@ -11,14 +11,21 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@browserbasehq/sdk": "^2.12.0",
+    "@google/genai": "^2.6.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.16.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dot-env": "^0.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-search-results-nodejs": "^2.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.2.0",
-    "mongoose": "^9.6.2"
+    "mongoose": "^9.6.2",
+    "playwright-core": "^1.60.0",
+    "puppeteer": "^25.1.0"
   }
 }

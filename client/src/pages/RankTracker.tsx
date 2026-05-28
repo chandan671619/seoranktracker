@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import {  Link } from "react-router-dom";
 import { Target, Plus, RefreshCw, Trash2, TrendingUp, TrendingDown, Minus, ExternalLink, Clock, Loader2, X, Search, Globe, AlertCircle, Eye, EyeOff, Filter, ArrowUpDown } from "lucide-react";
-import { dummyRankings } from "../assets/assets";
+import { useApp } from "../context/AppContext";
 
 interface KeywordItem {
     _id: string;
@@ -20,6 +20,9 @@ interface KeywordItem {
 }
 
 export default function RankTracker() {
+
+    const{api} = useApp()
+
     const [keywords, setKeywords] = useState<KeywordItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -34,38 +37,134 @@ export default function RankTracker() {
     const [sortBy, setSortBy] = useState("newest");
 
     const fetchKeywords = async () => {
-        setTimeout(() => {
-            setKeywords(dummyRankings);
-            setLoading(false);
-        }, 1000);
+        try {
+            const res = await api.get('api/rank/list')
+            if(res.data.success){
+                setKeywords(res.data.keywords)
+            }
+        } catch (error) {
+            console.log("failed to getch keyword",error)
+        }
+        setLoading(false);
     };
 
     const handleAdd = async (e: React.SubmitEvent) => {
         e.preventDefault();
+        if(!newKeyword.trim() || !newUrl.trim()) return;
         setAdding(true);
-        setTimeout(() => {
-            setShowAddModal(false);
-            setAdding(false);
-        }, 1000);
+        setAddError("");
+        try {
+            const res = await api.post('api/rank/add',{
+                keyword: newKeyword.trim(),
+                url: newUrl.trim()
+            });
+            if(res.data.success){
+                setKeywords((prev)=>[res.data.tracking,...prev])
+                setNewKeyword("")
+                setNewUrl("")
+                setShowAddModal(false)
+
+                // poll for completion
+                const id = res.data.tracking._id;
+                const pollInterval = setInterval(async()=>{
+                    try {
+                        const check = await api.get(`/api/rank/${id}`);
+                        if(check.data.tracking.status !== "checking"){
+                            clearInterval(pollInterval)
+                            setKeywords((prev)=>prev.map((k)=>(k._id === id ? check.data.tracking:k)))
+                        }
+                    } catch (error :any) {
+                        console.log(error);
+                        
+                    }
+                },3000)
+            }
+        } catch (error:any) {
+            setAddError(error.response?.data?.message || "failed to add keyword ")
+        }
+        setAdding(false)
     };
 
     const handleRefresh = async (id: string) => {
-        setRefreshing(id);
-        setTimeout(() => {
-            setRefreshing(null);
-        }, 1000);
-    };
+    setRefreshing(id);
+
+    try {
+
+        await api.post(`/api/rank/${id}/refresh`);
+
+        // update status to checking
+        setKeywords((prev) =>
+            prev.map((k) =>
+                k._id === id ? { ...k, status: "checking" } : k
+            )
+        );
+
+        // poll for completion
+        const pollInterval = setInterval(async () => {
+
+            try {
+
+                const check = await api.get(`/api/rank/${id}`);
+
+                if (check.data.tracking.status !== "checking") {
+
+                    clearInterval(pollInterval);
+
+                    setKeywords((prev) =>
+                        prev.map((k) =>
+                            k._id === id ? check.data.tracking : k
+                        )
+                    );
+
+                    setRefreshing(null);
+                }
+
+            } catch (error: any) {
+
+                console.log(error);
+
+            }
+
+        }, 3000);
+
+    } catch (error: any) {
+
+        setAddError(
+            error.response?.data?.message || "failed to refresh keyword"
+        );
+
+    }
+};
 
     const handleDelete = async (id: string) => {
         if (!confirm("Delete this keyword tracking?")) return;
         setDeleting(id);
-        setTimeout(() => {
-            setDeleting(null);
-        }, 1000);
+        try {
+            await api.delete(`/api/rank/${id}`)
+            setKeywords((prev) => prev.filter((k) => k._id !== id))
+        } catch (error) {
+            console.error("delete failed",error)
+        }
+        setDeleting(null)
     };
 
     const handleToggle = async (id: string) => {
-        console.log(id);
+        try {
+           const res =  await api.put(`/api/rank/${id}/toggle`)
+           console.log(res.data)
+           if(res.data.success){
+            setKeywords((prev) =>
+    prev.map((k) =>
+        k._id !== id
+            ? k
+            : { ...k, active: res.data.tracking.active }
+    )
+);
+           }
+            
+        } catch (error) {
+            console.error("delete failed",error)
+        }
     };
 
     const getPositionBadge = (pos: number | null) => {
@@ -77,11 +176,27 @@ export default function RankTracker() {
     };
 
     const getChangeIndicator = (change: number) => {
-        if (change > 0) return { icon: <TrendingUp size={14} />, text: `+${change}`, class: "text-emerald-500" };
-        if (change < 0) return { icon: <TrendingDown size={14} />, text: `${change}`, class: "text-danger" };
-        return { icon: <Minus size={14} />, text: "0", class: "text-muted-foreground" };
-    };
 
+    if (change > 0)
+        return {
+            icon: <TrendingUp size={14} />,
+            text: `+${change}`,
+            class: "text-emerald-500"
+        };
+
+    if (change < 0)
+        return {
+            icon: <TrendingDown size={14} />,
+            text: `${change}`,
+            class: "text-red-500"
+        };
+
+    return {
+        icon: <Minus size={14} />,
+        text: "0",
+        class: "text-muted-foreground"
+    };
+};
     let processedData = [...keywords];
 
     if (searchQuery) {

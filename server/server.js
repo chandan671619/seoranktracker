@@ -4,6 +4,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/dbconnect.js';
 import authRoutes from './routes/authRoutes.js';
+import rankRouter from './routes/rankRoutes.js';
+import analysisRouter from './routes/analysisroutes.js';
 
 
 dotenv.config();
@@ -14,6 +16,8 @@ app.use(cors());
 
 app.get('/',(req,res)=>{res.send('Hello World')});
 app.use('/api/auth', authRoutes);
+app.use('/api/rank',rankRouter)
+app.use('/api/analysis',analysisRouter)
 
 const port = 5000 ;
 app.listen(port, () => {
