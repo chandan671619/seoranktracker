@@ -85,7 +85,7 @@ Return JSON in this exact format:
             contents: prompt,
         });
 
-        const text = response.text
+        const text = response.text()
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
