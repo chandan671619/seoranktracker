@@ -19,7 +19,7 @@ interface AppContextType {
     register: (name: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
     logout: () => void; 
 }
-const BACKEND_URL = import.meta.env.BACKEND_URL || "http://localhost:5000";
+const BACKEND_URL = import.meta.env.BACKEND_URL || "https://seoranktracker.onrender.com";
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
