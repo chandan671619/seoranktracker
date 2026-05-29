@@ -23,7 +23,7 @@ export async function ranktracker(
 
           q: keyword,
 
-          num: 10,
+          num: 100,
 
         },
 
@@ -45,6 +45,12 @@ export async function ranktracker(
 
     const organicResults =
       data.organic_results || [];
+      console.log(
+  organicResults.map(r => ({
+    title: r.title,
+    link: r.link
+  }))
+);
 
     let found = null;
 
